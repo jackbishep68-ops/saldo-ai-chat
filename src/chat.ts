@@ -1,7 +1,7 @@
 import type { Message } from './App'
 
-export async function requestChat(messages: Message[], onText: (text: string) => void) {
-  const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: messages.filter(m => m.content.trim()).map(({ role, content }) => ({ role, content })) }) })
+export async function requestChat(messages: Message[], onText: (text: string) => void, signal: AbortSignal) {
+  const response = await fetch('/api/chat', { signal, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: messages.filter(m => m.content.trim()).map(({ role, content }) => ({ role, content })) }) })
   if (!response.ok) {
     const data = await response.json()
     throw new Error(data.error || 'The request failed. Please try again.')

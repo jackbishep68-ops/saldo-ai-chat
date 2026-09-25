@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { requestChat } from './chat'
 export type Message = { id: string; role: 'user' | 'assistant'; content: string }
@@ -6,17 +6,28 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [generating, setGenerating] = useState(false)
-  function stop() { setGenerating(false) }
+  const active = useRef<AbortController | null>(null)
+  function stop() { active.current?.abort(); active.current = null; setGenerating(false) }
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') stop() }
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey); active.current?.abort() }
+  }, [])
   async function send() {
-    if (!input.trim() || generating) return
+    if (!input.trim() || active.current) return
+    const controller = new AbortController()
+    active.current = controller
     const next: Message[] = [...messages, { id: crypto.randomUUID(), role: 'user', content: input.trim() }]
     const assistantId = crypto.randomUUID()
     setMessages([...next, { id: assistantId, role: 'assistant', content: '' }])
     setInput('')
     setGenerating(true)
     try {
-      await requestChat(next, text => setMessages(previous => previous.map(message => message.id === assistantId ? { ...message, content: message.content + text } : message)))
-    } finally { setGenerating(false) }
+      await requestChat(next, text => {
+        if (active.current === controller) setMessages(previous => previous.map(message => message.id === assistantId ? { ...message, content: message.content + text } : message))
+      }, controller.signal)
+    } catch (error) { if (!controller.signal.aborted) throw error }
+    finally { if (active.current === controller) { active.current = null; setGenerating(false) } }
   }
   return <div className="app">
     <header><a className="brand" href="#main"><b className="brand-mark">s.</b> saldo <span>/ ai chat</span></a><span className="badge">Session chat</span></header>
