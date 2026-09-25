@@ -6,6 +6,7 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState('')
   const active = useRef<AbortController | null>(null)
   function stop() { active.current?.abort(); active.current = null; setGenerating(false) }
   useEffect(() => {
@@ -22,16 +23,18 @@ function App() {
     setMessages([...next, { id: assistantId, role: 'assistant', content: '' }])
     setInput('')
     setGenerating(true)
+    setError('')
     try {
       await requestChat(next, text => {
         if (active.current === controller) setMessages(previous => previous.map(message => message.id === assistantId ? { ...message, content: message.content + text } : message))
       }, controller.signal)
-    } catch (error) { if (!controller.signal.aborted) throw error }
+    } catch (error) { if (!controller.signal.aborted && active.current === controller) setError(error instanceof Error ? error.message : 'Something went wrong. Please try again.') }
     finally { if (active.current === controller) { active.current = null; setGenerating(false) } }
   }
   return <div className="app">
     <header><a className="brand" href="#main"><b className="brand-mark">s.</b> saldo <span>/ ai chat</span></a><span className="badge">Session chat</span></header>
     <main id="main"><div className="intro"><span className="eyebrow">A LITTLE CLARITY, ON DEMAND</span><h1>Space to think.</h1><p>Ask a question. Explore an idea. Find your next step.</p></div>
+    {error && <p className="error" role="alert">{error} You can send another message below.</p>}
     <section className="conversation" aria-label="Conversation">
     {messages.length === 0 ? <div className="empty"><span className="spark" aria-hidden="true">✳</span><h2>What’s on your mind?</h2><p>Start somewhere. We’ll take it from there.</p><div className="suggestions">{['Explain a complex idea simply', 'Help me plan my week', 'Brainstorm a new project'].map(prompt => <button key={prompt} onClick={() => setInput(prompt)}>{prompt}<span aria-hidden="true">↗</span></button>)}</div></div> : <ol className="messages">{messages.map(message => <li className={`message ${message.role}`} key={message.id}><span className="speaker">{message.role === 'user' ? 'You' : 'Saldo AI'}</span><p>{message.content}</p></li>)}</ol>}
     </section>
