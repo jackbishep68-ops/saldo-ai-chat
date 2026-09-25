@@ -6,11 +6,18 @@ function App() {
   const [input, setInput] = useState('')
   const [generating, setGenerating] = useState(false)
   function stop() { setGenerating(false) }
-  function send() {
+  async function send() {
     if (!input.trim() || generating) return
-    setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', content: input.trim() }])
+    const next: Message[] = [...messages, { id: crypto.randomUUID(), role: 'user', content: input.trim() }]
+    setMessages(next)
     setInput('')
     setGenerating(true)
+    try {
+      const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: next }) })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+      setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', content: data.content }])
+    } finally { setGenerating(false) }
   }
   return <div className="app">
     <header><a className="brand" href="#main"><b className="brand-mark">s.</b> saldo <span>/ ai chat</span></a><span className="badge">Session chat</span></header>
