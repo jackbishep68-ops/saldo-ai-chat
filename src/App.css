@@ -271,3 +271,4 @@ footer span {
   outline-offset:8px
 }
 .conversation { max-height: 52dvh; overflow-y: auto; scrollbar-gutter: stable; padding: 6px; }
+.conversation.is-empty { max-height: none; overflow: visible; }

@@ -20,7 +20,7 @@ function App() {
     useEffect(() => { if (!saveHistory(messages))
         queueMicrotask(() => setStorageWarning(true)); }, [messages]);
     useEffect(() => {
-        if (follow.current)
+        if (follow.current && messages.length > 0)
             bottom.current?.scrollIntoView({ block: 'nearest' });
     }, [messages]);
     function stop() { active.current?.abort(); active.current = null; setGenerating(false); textarea.current?.focus(); }
@@ -81,11 +81,12 @@ function App() {
                 {messages.length > 0 && (
                     <button className="clear" disabled={generating} onClick={() => {
                         setMessages([]);
+                        setInput('');
                         setError('');
                         textarea.current?.focus();
                     }}>New chat</button>
                 )}
-                <section className="conversation" aria-label="Conversation" tabIndex={0} onScroll={event => {
+                <section className={messages.length ? 'conversation' : 'conversation is-empty'} aria-label="Conversation" tabIndex={0} onScroll={event => {
                     const el = event.currentTarget;
                     follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
                 }}>
