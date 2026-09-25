@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import { requestChat } from './chat'
 export type Message = { id: string; role: 'user' | 'assistant'; content: string }
 function App() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -9,14 +10,12 @@ function App() {
   async function send() {
     if (!input.trim() || generating) return
     const next: Message[] = [...messages, { id: crypto.randomUUID(), role: 'user', content: input.trim() }]
-    setMessages(next)
+    const assistantId = crypto.randomUUID()
+    setMessages([...next, { id: assistantId, role: 'assistant', content: '' }])
     setInput('')
     setGenerating(true)
     try {
-      const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: next }) })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error)
-      setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', content: data.content }])
+      await requestChat(next, text => setMessages(previous => previous.map(message => message.id === assistantId ? { ...message, content: message.content + text } : message)))
     } finally { setGenerating(false) }
   }
   return <div className="app">
