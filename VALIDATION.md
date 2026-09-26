@@ -1,6 +1,9 @@
 # Validation record
 
-Verified on Windows with Node v24.19.0, September 25, 2026.
+Implementation and browser checks were performed on Windows with Node v24.19.0,
+September 25, 2026. The live-provider limitation was updated on September 26, 2026.
+For this documentation-only update, `npm run build`, `npm run lint`, and
+`npm test` were rerun successfully: exit 0 for each, 15 tests passed, 0 failed.
 `npm` was not on the agent PATH; commands used the installed npm CLI through
 `node "C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js"`.
 
@@ -16,7 +19,27 @@ Verified on Windows with Node v24.19.0, September 25, 2026.
 | Bundle scan | PASS | No `OPENROUTER_API_KEY`, test credential sentinels, or upstream API endpoint in built assets |
 | Browser request construction | PASS | Client test intercepts fetch: only `/api/chat`, no Authorization header; server test confirms the credential exists only in upstream headers |
 | Live browser Network header inspection | NOT DONE | Browser tooling did not expose a Network capture; this claim is supported by source/tests/bundle checks, not a DevTools capture |
-| Live OpenRouter completion | NOT DONE | No real API key/model configured; actual server returns an understandable 503 |
+| Live OpenRouter completion | BLOCKED / NOT VERIFIED | No real API key was obtained and no live provider request was performed; see the access limitation below |
+
+## Final live-provider limitation
+
+The implementation is complete. Automated tests, local fixture streaming,
+Stop/cancellation, session restoration, HTTP 429, timeout, and network-error
+handling passed. These results do not establish a successful live OpenRouter
+completion.
+
+On September 26, 2026, direct access to `openrouter.ai` returned a
+security/Cloudflare block page. The block persisted across desktop and mobile
+attempts. An alternative official authentication attempt used Stripe CLI.
+Stripe CLI installed and ran successfully, but device
+authorization could not complete because connections to `access.stripe.com`
+timed out or were forcibly closed. Consequently, no real OpenRouter API key was
+obtained and no live provider request was performed. Live OpenRouter integration
+has **not passed verification**.
+
+The assignment explicitly requires OpenRouter, so no alternative provider was
+substituted. The existing code path remains configured for a server-side
+`OPENROUTER_API_KEY` and a specific `:free` model once credentials are available.
 
 ## Browser smoke results
 
@@ -42,7 +65,7 @@ The normal API was restarted; the preview is left in its clean empty state.
 | Long unbroken response | PASS at 375px; wrapping stays inside conversation |
 | Mobile empty state | PASS at 320px and 375px; no horizontal page overflow; all prompt cards visible after correction |
 | Session storage corruption / denial | PASS automated tests |
-| Real free-model availability/authentication/quota | NOT DONE; Ivan must configure `.env` and send a real prompt |
+| Real free-model availability/authentication/quota | BLOCKED / NOT VERIFIED; requires restored access, credentials, and a live smoke test |
 | Screen-reader audio and physical mobile keyboard | NOT DONE |
 
 ## Initial failures and corrections
@@ -63,8 +86,10 @@ The normal API was restarted; the preview is left in its clean empty state.
 
 ## Final manual checks for Ivan
 
-1. Copy `.env.example` to `.env`, supply a key and a current specific `:free`
-   model ID. Keep the key out of chat messages and Git.
+1. Once official OpenRouter access is available, obtain an API key. Copy
+   `.env.example` to `.env` if needed, then set `OPENROUTER_API_KEY` and
+   `OPENROUTER_MODEL` to the key and a current specific `:free` model ID.
+   Keep the key out of chat messages and Git.
 2. Restart `npm run dev`; send a real prompt, stop its streamed answer, and
    send another prompt. Check your browser's Network tab: only `/api/chat`
    should be used for chat, with no OpenRouter Authorization header.

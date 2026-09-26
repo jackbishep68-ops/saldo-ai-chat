@@ -24,7 +24,7 @@ Set `OPENROUTER_API_KEY` in **that server-only file**. Set `OPENROUTER_MODEL` to
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. The command starts Vite and the API together; Ctrl+C stops both. Keep the default API port **3001**, which matches `vite.config.ts`. If either port is occupied, stop the other process. An alternative is two terminals running `npm run dev:server` and `npm run dev:client`.
+Open **http://localhost:5173**. The command starts Vite and the API together; Ctrl+C stops both. Keep the default API port **3001**, which matches `vite.config.ts`. If either port is occupied, stop the other process. An alternative is two terminals running `npm run dev:server` and `npm run dev:client`.
 
 Vite hot-reloads frontend edits. Restart the command after changing server code or `.env`; the API intentionally runs without Node watch-mode subprocesses.
 
@@ -76,11 +76,17 @@ Tests use injected, explicitly artificial upstream responses, never real API cre
 
 To reproduce browser smoke checks **without a key**, stop the normal API, run `node tests/browser-server.mjs`, and separately run `npm run dev:client`. This explicit fixture announces itself in the terminal and in every answer. It is never imported by the normal application server. Send `stream` for a slow stream, `long` for an unbroken line, `429` for rate limiting, or `network` for a simulated upstream interruption. Stop the fixture and restart the real API afterward.
 
-See [VALIDATION.md](VALIDATION.md) for actual PASS results, environment limitations, and remaining real-provider validation. The implementation is not represented as live-model verified without a configured key.
+The implementation is complete. Automated tests and local fixture checks passed for streaming, Stop/cancellation, session restoration, HTTP 429, timeout, and network-error handling. See [VALIDATION.md](VALIDATION.md) for the verification scope.
+
+### Live-provider verification blocked
+
+A real OpenRouter completion could not be verified. On September 26, 2026, direct access to `openrouter.ai` returned a security/Cloudflare block page, which persisted across desktop and mobile attempts. An alternative official authentication attempt used Stripe CLI: the CLI installed and ran successfully, but device authorization could not complete because connections to `access.stripe.com` timed out or were forcibly closed. No real OpenRouter API key was obtained, and no live provider request was performed. Live OpenRouter integration is therefore **not verified**.
+
+OpenRouter remains the required provider; it has not been replaced. The existing code path remains configured to use a server-side `OPENROUTER_API_KEY` and a specific `:free` model when credentials become available.
 
 ## Known limitations
 
-- Live OpenRouter authentication, current free-model availability, and account quota still require a real-key smoke test. Free models may be busy or disappear.
+- Live OpenRouter verification is blocked by the access/authentication limitations above. Authentication, current free-model availability, and account quota still require a real-key smoke test. Free models may be busy or disappear.
 - Plain text rendering, intentionally: no Markdown/HTML execution, citations UI, attachments, or tool calls.
 - No database, accounts, cross-tab sync, automatic retry, or deployment infrastructure. `npm start` starts only the API; a public deployment needs a static host/reverse proxy and abuse controls before exposing it.
 - Requests accept at most 80 messages, 24000 characters per message, and 128000 body bytes. The input itself is capped at 12000 characters. Session restore accepts at most 80 messages and 256000 serialized characters; very large history should be cleared with New chat.
